@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <title>Magnit Node Graph</title>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <meta name="description" content="" />
+
+  <!-- <link rel="icon" href="img/favicon.png"> -->
+  <script src="./magnit-node-graph.component.js" type="module" defer></script>
+  <!-- <script src="./magnit-node-graph-node.component.js" type="module" defer></script>
+  <script src="./magnit-node-graph-socket.component.js" type="module" defer></script> -->
+  <style>
+    html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; }
+    * {box-sizing: border-box;}
+    body{
+        background-color: #434343;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .card
+    {
+      width: 80%;
+      height: 80%;
+    }
+
+    /* #node-writer
+    {
+      /* display: grid;
+      grid: auto / min-content 1fr; 
+      overflow: hidden;
+      flex: 1;
+    } */
+
+    .tool-panel
+    {
+      background-color: #222;
+      color: #444;
+      grid-column: 1;
+    }
+
+    node-graph
+    {
+      /* grid-column: 2; */
+    }
+
+    .node-menu
+    {
+      display: none;
+      position: absolute;
+      top: var(--top);
+      left: var(--left);
+    }
+    .node-menu.open
+    {
+      display: grid;
+      grid: auto / 1fr;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="card node-writer">
+    <header>Node Writer</header>
+    <node-graph></node-graph>
+    
+    <div class="node-menu">
+      <ul class="items">
+        <li data-key="character">Add a Character</li>
+        <li data-key="topic">Begin a new Topic</li>
+        <li data-key="prompt">Add a Prompt</li>
+        <li data-key="response">Add a Response</li>
+      </ul>
+    </div>
+  </div>
+  <!-- TODO
+    Trim link svg size
+    Group nodes
+
+    Serialize Data
+    Copy
+    Paste
+    Export
+
+    Collection node (holds a collection of primatives or objects defined by Data nodes)
+    Data Node (holds an object, expands to show properties as inputs) - for writing app, not node library; one example of getting data to nodes
+    Tokens node (maps strings to variables or object data)
+  -->
+</body>
+
+<script type="module" defer>
+  const $nodeGraph = document.querySelector('node-graph');
+  const $nodeMenu = document.querySelector('.node-menu');
+  $nodeGraph.addEventListener('onnodemenu', (event) =>
+  {
+    openNodeMenu(event.detail);
+  });
+
+  for(let $item of document.querySelectorAll('.node-menu .items li'))
+  {
+    $item.addEventListener('click', () => { addNode($item); closeNodeMenu(); });
+  }
+
+  $nodeGraph.addNode(25100, 25400 ,`[data-node-key="topic"]`);
+  $nodeGraph.addNode(25600, 25200 ,`[data-node-key="response"]`);
+  $nodeGraph.addNode(25600, 25400 ,`[data-node-key="response"]`);
+  $nodeGraph.addNode(25600, 25600 ,`[data-node-key="response"]`);
+  $nodeGraph.addNode(25600, 25800 ,`[data-node-key="response"]`);
+  $nodeGraph.addNode(26200, 25400 ,`[data-node-key="prompt"]`);
+
+  function openNodeMenu(graphData)
+  {
+    // console.log("graph position: ", graphData);
+    $nodeMenu.style.setProperty("--top", `${graphData.mouseEvent.clientY}px`);
+    $nodeMenu.style.setProperty("--left", `${graphData.mouseEvent.clientX}px`);
+    $nodeMenu.dataset.graphX = graphData.x;
+    $nodeMenu.dataset.graphY = graphData.y;
+
+    let clickOffHandler = (event) =>
+    {
+      if(event.target.closest('.node-menu') != null)
+      {
+        document.addEventListener('mousedown', clickOffHandler, {once: true});
+        return;
+      }
+      closeNodeMenu();
+    };
+    document.addEventListener('mousedown', clickOffHandler, {once: true});
+    $nodeMenu.classList.add('open');
+  }
+  function closeNodeMenu()
+  {
+    $nodeMenu.classList.remove('open');
+    $nodeMenu.style.removeProperty('--top');
+    $nodeMenu.style.removeProperty('--left');
+    delete $nodeMenu.dataset.graphX;
+    delete $nodeMenu.dataset.graphY;
+  }
+
+
+  const socketLabelMap = { "text": "Text", "topic": "Response", "prompt": "Response" };
+  function addNode($item)
+  {
+    let $node = $nodeGraph.addNode($nodeMenu.dataset.graphX, $nodeMenu.dataset.graphY, `[data-node-key="${$item.dataset.key}"]`);
+
+    $node.$addResponseButton = $node.querySelector('.action .add-response');
+    if($node.$addResponseButton != null)
+    {
+      $node.$addResponseButton.addEventListener('click', () =>
+      {
+        let nodeKey = $node.dataset.nodeKey;
+        let $newSocket = $node.addOutputSocket(socketLabelMap[nodeKey]);
+      });
+    }
+  }
+</script>
+
+
+<template data-node-key="text">
+  <span slot="label">Text</span>
+  <div slot="content">
+    <textarea placeholder="Enter text..."></textarea>
+  </div>
+  <ul slot="outputs">
+    <li class="socket"><node-graph-socket><span slot="label">Text</span></node-graph-socket></li>
+    <li class="action"><button type="button" class="add-response">Add Socket</button></li>
+  </ul>
+</template>
+<template data-node-key="character">
+  <span slot="label">Character</span>
+  <div slot="content">
+    <label class="input">
+      <span class="title">
+
+      </span>
+      <span class="value">
+        
+      </span>
+    </label>
+    <input type="text" />
+  </div>
+  <ul slot="outputs">
+    <li class="socket"><node-graph-socket><span slot="label">Response</span></node-graph-socket></li>
+    <li class="action"><button type="button" class="add-response">Add Response</button></li>
+  </ul>
+</template>
+<template data-node-key="topic">
+  <span slot="label">Begin Topic Prompt</span>
+  <div slot="content">
+    <textarea placeholder="So ne said..."></textarea>
+  </div>
+  <ul slot="outputs">
+    <li class="socket"><node-graph-socket><span slot="label">Response</span></node-graph-socket></li>
+    <li class="action"><button type="button" class="add-response">Add Response</button></li>
+  </ul>
+</template>
+<template data-node-key="prompt">
+  <span slot="label">Prompt</span>
+  <div slot="content">
+    <textarea placeholder="Then ne said..."></textarea>
+  </div>
+  <ul slot="inputs">
+    <li class="socket"><node-graph-socket><span slot="label">Response</span></node-graph-socket></li>
+  </ul>
+  <ul slot="outputs">
+    <li class="socket"><node-graph-socket><span slot="label">Response</span></node-graph-socket></li>
+    <li class="action"><button type="button" class="add-response">Add Response</button></li>
+  </ul>
+</template>
+<template data-node-key="response">
+  <span slot="label">Response</span>
+  <div slot="content">
+    <textarea placeholder="And I replied..."></textarea>
+  </div>
+  <ul slot="inputs">
+    <li class="socket"><node-graph-socket><span slot="label">Prompt</span></node-graph-socket></li>
+  </ul>
+  <ul slot="outputs">
+    <li class="socket"><node-graph-socket><span slot="label">Prompt</span></node-graph-socket></li>
+  </ul>
+</template>
+<template data-node-key="end-topic">
+  <span slot="label">End Of Topic</span>
+  <div slot="content">
+    <p>And that's all we had to say.</p>
+  </div>
+</template>
+</html>
