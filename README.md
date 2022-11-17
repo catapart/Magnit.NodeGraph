@@ -6,3 +6,6 @@ Node Graphs can be used for program logic, musical sequencing, video editing and
 
 ## Development
 This library is pre-production and under active development.
+
+## Demo
+https://catapart.github.io/Magnit.NodeGraph/
